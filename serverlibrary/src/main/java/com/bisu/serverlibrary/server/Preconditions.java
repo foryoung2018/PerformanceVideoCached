@@ -1,4 +1,4 @@
-package com.bisu.serverlibrary;
+package com.bisu.serverlibrary.server;
 
 public final class Preconditions {
 

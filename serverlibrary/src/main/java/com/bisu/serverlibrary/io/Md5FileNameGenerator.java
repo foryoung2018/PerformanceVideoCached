@@ -2,7 +2,7 @@ package com.bisu.serverlibrary.io;
 
 import android.text.TextUtils;
 
-import com.bisu.serverlibrary.CacheUtils;
+import com.bisu.serverlibrary.server.CacheUtils;
 
 /**
  * Implementation of {@link FileNameGenerator} that uses MD5 of url as file name

@@ -1,4 +1,4 @@
-package com.bisu.serverlibrary;
+package com.bisu.serverlibrary.server;
 
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
@@ -13,8 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-import static com.bisu.serverlibrary.Preconditions.checkArgument;
-import static com.bisu.serverlibrary.Preconditions.checkNotNull;
+import static com.bisu.serverlibrary.server.Preconditions.checkNotNull;
 
 /**
  * Just simple utils.
@@ -35,8 +34,8 @@ public class CacheUtils {
 
     static void assertBuffer(byte[] buffer, long offset, int length) {
         checkNotNull(buffer, "Buffer must be not null!");
-        checkArgument(offset >= 0, "Data offset must be positive!");
-        checkArgument(length >= 0 && length <= buffer.length, "Length must be in range [0..buffer.length]");
+        Preconditions.checkArgument(offset >= 0, "Data offset must be positive!");
+        Preconditions.checkArgument(length >= 0 && length <= buffer.length, "Length must be in range [0..buffer.length]");
     }
 
     static String preview(byte[] data, int length) {
