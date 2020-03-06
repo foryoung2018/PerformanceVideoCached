@@ -1,24 +1,34 @@
 package com.bisu.serverlibrary.server;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.bisu.serverlibrary.Config;
+import com.bisu.serverlibrary.Constant;
 import com.bisu.serverlibrary.io.FileHandler;
 import com.bisu.serverlibrary.io.FileNameGenerator;
 import com.bisu.serverlibrary.io.StreamHandler;
+import com.bisu.serverlibrary.net.DataSource;
+import com.bisu.serverlibrary.net.HttpDataSource;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URLDecoder;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 import static com.bisu.serverlibrary.server.Preconditions.checkNotNull;
 
@@ -36,7 +46,6 @@ public class CachedServer  {
         this.config = config;
         try {
             initServerSync(); //同步创建本地服务
-            initClientSync(); //同步创建获取数据的任务
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -46,11 +55,13 @@ public class CachedServer  {
     }
 
     //TODO
-    private void initClientSync() {
+    private void initClient(String url) throws IOException {
+        DataSource dataSource = new HttpDataSource(url);
+        dataSource.get(0);
+        new Thread(new ClientRunable(dataSource)).start();
 
     }
 
-    //TODO
     private void initServerSync() throws IOException, InterruptedException {
         CountDownLatch startSignal = new CountDownLatch(1);
         InetAddress inetAddress = InetAddress.getByName(PROXY_HOST);
@@ -104,10 +115,17 @@ public class CachedServer  {
         private void processSocket(Socket socket) {
             try {
                 // 读取客户端数据    
-                BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                String clientInputStr = input.readLine();//这里要注意和客户端输出流的写方法对应,否则会抛 EOFException  
-                // 处理客户端数据    
-                Log.d(TAG, "processSocket() called with: clientInputStr = [" + clientInputStr + "]");
+                BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"));
+                // 处理客户端数据
+                String line;
+                StringBuilder requetLink = new StringBuilder();
+                while (!TextUtils.isEmpty(line = input.readLine())) { // until new line (headers ending)
+                    Log.d(Constant.TAG, "processSocket() called with: line = [" + line + "]");
+                    requetLink.append(line);
+                }
+                String url = decode(findUri(requetLink.toString()));
+                Log.d(Constant.TAG, "processSocket() called with: uri = [" + url + "]");
+                initClient(url); //同步创建获取数据的任务
                 input.close();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -120,7 +138,25 @@ public class CachedServer  {
                         e.printStackTrace();
                     }
                 }
-            } 
+            }
+        }
+
+        private  final Pattern URL_PATTERN = Pattern.compile("GET /(.*) HTTP");
+
+        private String findUri(String request) {
+            Matcher matcher = URL_PATTERN.matcher(request);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+            throw new IllegalArgumentException("Invalid request `" + request + "`: url not found!");
+        }
+
+        String decode(String url) {
+            try {
+                return URLDecoder.decode(url, "utf-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("Error decoding url", e);
+            }
         }
 
     }
@@ -178,4 +214,24 @@ public class CachedServer  {
     }
 
 
+    private class ClientRunable implements Runnable {
+        private DataSource dataSource;
+
+        public ClientRunable(DataSource dataSource) {
+            this.dataSource = dataSource;
+        }
+
+        @Override
+        public void run() {
+            try {
+                byte[] buffer = new byte[Constant.DEFAULT_BUFFER_SIZE];
+                int readBytes;
+                while (dataSource.connected()&& dataSource.read(buffer) != -1){
+                    Log.d(Constant.TAG, "run() called buffer = " + Arrays.toString(buffer));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
