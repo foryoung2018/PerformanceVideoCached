@@ -1,5 +1,7 @@
 package com.bisu.serverlibrary.server;
 
+import android.content.Context;
+import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -7,6 +9,7 @@ import com.bisu.serverlibrary.Config;
 import com.bisu.serverlibrary.Constant;
 import com.bisu.serverlibrary.io.FileHandler;
 import com.bisu.serverlibrary.io.FileNameGenerator;
+import com.bisu.serverlibrary.io.NativeHelper;
 import com.bisu.serverlibrary.io.StreamHandler;
 import com.bisu.serverlibrary.net.DataSource;
 import com.bisu.serverlibrary.net.HttpDataSource;
@@ -34,7 +37,10 @@ import static com.bisu.serverlibrary.server.Preconditions.checkNotNull;
 
 public class CachedServer  {
 
+
+
     private static final String TAG = CachedServer.class.getSimpleName();
+    private final Context context;
     private ServerSocket serverSocket;
     private  int port;
     private  Thread socketThread;
@@ -42,8 +48,11 @@ public class CachedServer  {
     Config config;
     private final ExecutorService socketProcessor = Executors.newFixedThreadPool(8);
 
-    public CachedServer(Config config) {
+    public CachedServer(Config config, Context context) {
         this.config = config;
+        this.context = context;
+        NativeHelper.init("111");
+        NativeHelper.mmapWrite("adfad", context.getFilesDir().getAbsolutePath(), "1.txt");
         try {
             initServerSync(); //同步创建本地服务
         } catch (IOException e) {
@@ -168,8 +177,10 @@ public class CachedServer  {
         private FileNameGenerator fileNameGenerator;
         private List<StreamHandler> streamHandlers;
         private List<FileHandler> fileHandlers;
+        private Context context;
 
-        public Builder() {
+        public Builder(Context context) {
+            this.context = context;
             this.cacheRoot = getAvaibleCachedFile();
         }
 
@@ -184,7 +195,7 @@ public class CachedServer  {
         }
 
         public CachedServer build(){
-            return new CachedServer(new Config(cacheRoot,fileNameGenerator,streamHandlers,  fileHandlers ));
+            return new CachedServer(new Config(cacheRoot,fileNameGenerator,streamHandlers,  fileHandlers ), context );
         }
     }
 
@@ -234,4 +245,5 @@ public class CachedServer  {
             }
         }
     }
+
 }
