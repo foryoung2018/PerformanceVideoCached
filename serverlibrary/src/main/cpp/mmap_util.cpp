@@ -34,9 +34,10 @@ void mmap_write(const char *src_ptr,const int32_t len, const char *path_ptr, con
     _size= (size_t) getpagesize();//要写入到磁盘文件的字节长度，不一定是页的大小，可以是任意值
     ftruncate(_fd,len);
     _ptr= (int8_t *) mmap(0, 4097, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+    LOG("errno%d",errno);
     if(_ptr==MAP_FAILED)
     {
-        LOG("映射失败");
+        LOG("映射失败1");
         return;
     }
     memcpy(_ptr,src_ptr,len);
@@ -65,7 +66,7 @@ void mmap_write(const std::string src, const std::string path, const std::string
     _ptr= (int8_t *) mmap(0, len, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
     if(_ptr==MAP_FAILED)
     {
-        LOG("映射失败");
+        LOG("映射失败2");
         return;
     }
     memcpy(_ptr,src.data(),len);
