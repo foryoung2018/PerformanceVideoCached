@@ -6,9 +6,11 @@ public class NativeHelper {
         System.loadLibrary("native-lib");
     }
 
-    public native static void init(String url);
+    public native static long init(String url);
 
-    public native static void mmapWrite(String data, String dir, String file);
+    public static long ptr;
 
-    public native static void mmapWriteByte(byte[] data, String path, String file);
+    public native static void mmapWrite(String data,   String dir,long ptr, String file);
+
+    public native static void mmapWriteByte(byte[] data, String path,long ptr, String file);
 }

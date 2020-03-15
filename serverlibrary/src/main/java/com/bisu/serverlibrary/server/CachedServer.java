@@ -1,12 +1,15 @@
 package com.bisu.serverlibrary.server;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.bisu.serverlibrary.Config;
 import com.bisu.serverlibrary.Constant;
+import com.bisu.serverlibrary.R;
 import com.bisu.serverlibrary.io.FileHandler;
 import com.bisu.serverlibrary.io.FileNameGenerator;
 import com.bisu.serverlibrary.io.NativeHelper;
@@ -15,9 +18,12 @@ import com.bisu.serverlibrary.net.DataSource;
 import com.bisu.serverlibrary.net.HttpDataSource;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -51,8 +57,6 @@ public class CachedServer  {
     public CachedServer(Config config, Context context) {
         this.config = config;
         this.context = context;
-        NativeHelper.init("111");
-        NativeHelper.mmapWrite("adfad", context.getFilesDir().getAbsolutePath(), "1.txt");
         try {
             initServerSync(); //同步创建本地服务
         } catch (IOException e) {
@@ -129,11 +133,11 @@ public class CachedServer  {
                 String line;
                 StringBuilder requetLink = new StringBuilder();
                 while (!TextUtils.isEmpty(line = input.readLine())) { // until new line (headers ending)
-                    Log.d(Constant.TAG, "processSocket() called with: line = [" + line + "]");
+//                    Log.d(Constant.TAG, "processSocket() called with: line = [" + line + "]");
                     requetLink.append(line);
                 }
                 String url = decode(findUri(requetLink.toString()));
-                Log.d(Constant.TAG, "processSocket() called with: uri = [" + url + "]");
+//                Log.d(Constant.TAG, "processSocket() called with: uri = [" + url + "]");
                 initClient(url); //同步创建获取数据的任务
                 input.close();
             } catch (Exception e) {
@@ -234,16 +238,42 @@ public class CachedServer  {
 
         @Override
         public void run() {
+
+            OutputStream os = null;
             try {
+                os =new FileOutputStream(new File(context.getFilesDir().getAbsolutePath() + "a.jpg"));
                 byte[] buffer = new byte[Constant.DEFAULT_BUFFER_SIZE];
-                int readBytes;
-                while (dataSource.connected()&& dataSource.read(buffer) != -1){
+                int readBytes = 0;
+                while (dataSource.connected()&& (readBytes = dataSource.read(buffer)) != -1){
                     Log.d(Constant.TAG, "run() called buffer = " + Arrays.toString(buffer));
+                    os.write(buffer,0,readBytes);
                 }
+                Log.d(Constant.TAG, "run() bitmap path = " + context.getFilesDir().getAbsolutePath() + "a.jpg");
+                os.close();
+                dataSource.close();
+                Bitmap bitmap = BitmapFactory.decodeFile(context.getFilesDir().getAbsolutePath() + "a.jpg");
+                byte[] bytes = bitmap2Bytes(bitmap);
+                NativeHelper.mmapWriteByte(bytes, context.getFilesDir().getAbsolutePath(),NativeHelper.ptr, "b.jpg");
+
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                try {
+                    os.close();
+                    dataSource.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
         }
+    }
+
+
+    public static byte[] bitmap2Bytes(Bitmap bitmap) {
+        ByteArrayOutputStream byteArrOutStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrOutStream);
+        return byteArrOutStream.toByteArray();
     }
 
 }
