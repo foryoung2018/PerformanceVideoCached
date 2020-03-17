@@ -16,12 +16,14 @@ import com.bisu.serverlibrary.io.NativeHelper;
 import com.bisu.serverlibrary.io.StreamHandler;
 import com.bisu.serverlibrary.net.DataSource;
 import com.bisu.serverlibrary.net.HttpDataSource;
+import com.bisu.serverlibrary.net.HttpRequest;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -127,19 +129,24 @@ public class CachedServer  {
 
         private void processSocket(Socket socket) {
             try {
-                // 读取客户端数据    
-                BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"));
-                // 处理客户端数据
-                String line;
-                StringBuilder requetLink = new StringBuilder();
-                while (!TextUtils.isEmpty(line = input.readLine())) { // until new line (headers ending)
-//                    Log.d(Constant.TAG, "processSocket() called with: line = [" + line + "]");
-                    requetLink.append(line);
-                }
-                String url = decode(findUri(requetLink.toString()));
-//                Log.d(Constant.TAG, "processSocket() called with: uri = [" + url + "]");
-                initClient(url); //同步创建获取数据的任务
-                input.close();
+//                // 读取客户端数据
+//                BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream(),"UTF-8"));
+//                // 处理客户端数据
+//                String line;
+//                StringBuilder requetLink = new StringBuilder();
+//                while (!TextUtils.isEmpty(line = input.readLine())) { // until new line (headers ending)
+////                    Log.d(Constant.TAG, "processSocket() called with: line = [" + line + "]");
+//                    requetLink.append(line);
+//                }
+//                String url = decode(findUri(requetLink.toString()));
+////                Log.d(Constant.TAG, "processSocket() called with: uri = [" + url + "]");
+//                initClient(url); //同步创建获取数据的任务
+//                input.close();
+
+                HttpRequest httpRequest = HttpRequest.parseFromStream(socket.getInputStream());
+                String url = CacheUtils.decode(httpRequest.uri);
+                Log.d(Constant.TAG, "processSocket() called with: httpRequest = [" + httpRequest + "]");
+                //TODO get mp4 request param
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -241,19 +248,18 @@ public class CachedServer  {
 
             OutputStream os = null;
             try {
-                os =new FileOutputStream(new File(context.getFilesDir().getAbsolutePath() + "a.jpg"));
+                os =new FileOutputStream(new File(context.getFilesDir().getAbsolutePath() + "2.mp4"));
                 byte[] buffer = new byte[Constant.DEFAULT_BUFFER_SIZE];
                 int readBytes = 0;
                 while (dataSource.connected()&& (readBytes = dataSource.read(buffer)) != -1){
                     Log.d(Constant.TAG, "run() called buffer = " + Arrays.toString(buffer));
                     os.write(buffer,0,readBytes);
                 }
-                Log.d(Constant.TAG, "run() bitmap path = " + context.getFilesDir().getAbsolutePath() + "a.jpg");
                 os.close();
                 dataSource.close();
-                Bitmap bitmap = BitmapFactory.decodeFile(context.getFilesDir().getAbsolutePath() + "a.jpg");
-                byte[] bytes = bitmap2Bytes(bitmap);
-                NativeHelper.mmapWriteByte(bytes, context.getFilesDir().getAbsolutePath(),NativeHelper.ptr, "b.jpg");
+//                Bitmap bitmap = BitmapFactory.decodeFile(context.getFilesDir().getAbsolutePath() + "a.jpg");
+//                byte[] bytes = bitmap2Bytes(bitmap);
+//                NativeHelper.mmapWriteByte(bytes, context.getFilesDir().getAbsolutePath(),NativeHelper.ptr, "b.jpg");
 
             } catch (Exception e) {
                 e.printStackTrace();

@@ -23,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
 //    private String mockUrl = "https://cv.phncdn.com/videos/201912/16/269072851/1080P_4000K_269072851.mp4";
     private String mockUrl = "http://t8.baidu.com/it/u=3571592872,3353494284&fm=79&app=86&f=JPEG?w=1200&h=1290";
+    private String localMp4  = "http://192.168.1.3/1.mp4";
     VideoView videoView;
     Button play;
 
@@ -70,14 +71,14 @@ public class MainActivity extends AppCompatActivity {
 
     long ptr;
     private void startVideo() {
-        NativeHelper.mmapWrite("11112222", getFilesDir().getAbsolutePath(),NativeHelper.ptr, "1.txt");
+//        NativeHelper.mmapWrite("11112222", getFilesDir().getAbsolutePath(),NativeHelper.ptr, "1.txt");
 
 
-//        CachedServer proxy = new CachedServer.Builder(this).build();
-//        String proxyUrl = proxy.getProxyUrl(mockUrl);
-//        Log.d(Constant.TAG, "startVideo() called " + proxyUrl);
-//        videoView.setVideoPath(proxyUrl);
-//        videoView.start();
+        CachedServer proxy = new CachedServer.Builder(this).build();
+        String proxyUrl = proxy.getProxyUrl(localMp4);
+        Log.d(Constant.TAG, "startVideo() called " + proxyUrl);
+        videoView.setVideoPath(proxyUrl);
+        videoView.start();
 
 
 //        byte[] buffer = new byte[10];
