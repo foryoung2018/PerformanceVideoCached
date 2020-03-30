@@ -2,28 +2,24 @@ package com.bisu.serverlibrary.server;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.Environment;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.bisu.serverlibrary.Config;
 import com.bisu.serverlibrary.Constant;
-import com.bisu.serverlibrary.R;
 import com.bisu.serverlibrary.io.FileHandler;
 import com.bisu.serverlibrary.io.FileNameGenerator;
-import com.bisu.serverlibrary.io.NativeHelper;
 import com.bisu.serverlibrary.io.StreamHandler;
 import com.bisu.serverlibrary.net.DataSource;
 import com.bisu.serverlibrary.net.HttpDataSource;
 import com.bisu.serverlibrary.net.HttpRequest;
+import com.bisu.serverlibrary.net.RealHttpClient;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -34,6 +30,8 @@ import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,6 +43,9 @@ import static com.bisu.serverlibrary.server.Preconditions.checkNotNull;
 
 public class CachedServer  {
 
+    //socket内部的真实http请求
+    private final Map<String, RealHttpClient> clientsMap = new ConcurrentHashMap<>();
+    private final Object clientsLock = new Object();
 
 
     private static final String TAG = CachedServer.class.getSimpleName();
@@ -105,7 +106,9 @@ public class CachedServer  {
         private void waitForRequest() {
             try {
                 while (!Thread.currentThread().isInterrupted()) {
+                    //TODO 需要检查多次接收socket的原因
                     Socket socket = serverSocket.accept();
+                    Log.d(Constant.TAG, "waitForRequest() called = " + socket);
                     socketProcessor.submit(new SocketProcessorRunnable(socket));
                 }
             } catch (IOException e) {
@@ -127,6 +130,7 @@ public class CachedServer  {
             }
         }
 
+        //拿到本地请求的响应
         private void processSocket(Socket socket) {
             try {
 //                // 读取客户端数据
@@ -146,7 +150,8 @@ public class CachedServer  {
                 HttpRequest httpRequest = HttpRequest.parseFromStream(socket.getInputStream());
                 String url = CacheUtils.decode(httpRequest.uri);
                 Log.d(Constant.TAG, "processSocket() called with: httpRequest = [" + httpRequest + "]");
-                //TODO get mp4 request param
+                RealHttpClient client = getRealClient(url);
+                client.processHttpRequest(httpRequest, socket);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -179,6 +184,17 @@ public class CachedServer  {
             }
         }
 
+    }
+
+    private RealHttpClient getRealClient(String url) {
+        synchronized (clientsLock) {
+            RealHttpClient clients = clientsMap.get(url);
+            if (clients == null) {
+                clients = new RealHttpClient(url, config, context);
+                clientsMap.put(url, clients);
+            }
+            return clients;
+        }
     }
 
 
@@ -252,7 +268,7 @@ public class CachedServer  {
                 byte[] buffer = new byte[Constant.DEFAULT_BUFFER_SIZE];
                 int readBytes = 0;
                 while (dataSource.connected()&& (readBytes = dataSource.read(buffer)) != -1){
-                    Log.d(Constant.TAG, "run() called buffer = " + Arrays.toString(buffer));
+//                    Log.d(Constant.TAG, "run() called buffer = " + Arrays.toString(buffer));
                     os.write(buffer,0,readBytes);
                 }
                 os.close();

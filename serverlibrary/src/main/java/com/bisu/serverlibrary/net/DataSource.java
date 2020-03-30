@@ -12,4 +12,8 @@ public interface DataSource {
     int read(byte[] bytes) throws Exception;
 
     void close();
+
+    long length();
+
+    void open(long offset);
 }

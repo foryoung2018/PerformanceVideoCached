@@ -15,10 +15,12 @@ import static java.net.HttpURLConnection.HTTP_MOVED_PERM;
 import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 import static java.net.HttpURLConnection.HTTP_SEE_OTHER;
 
+
+//真正的网络请求
 public class HttpDataSource implements DataSource {
 
 
-    private HttpURLConnection connection;
+        private HttpURLConnection connection;
     private String url;
     private InputStream inputStream;
     private boolean connected;
@@ -88,5 +90,15 @@ public class HttpDataSource implements DataSource {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public long length() {
+        return 0;
+    }
+
+    @Override
+    public void open(long offset) {
+
     }
 }

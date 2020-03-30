@@ -23,8 +23,8 @@ import static com.bisu.serverlibrary.server.Preconditions.checkNotNull;
 public class CacheUtils {
 
 //    private static final Logger LOG = LoggerFactory.getLogger("CacheUtils");
-    static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
-    static final int MAX_ARRAY_PREVIEW = 16;
+    public static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
+    public static final int MAX_ARRAY_PREVIEW = 16;
 
     static String getSupposablyMime(String url) {
         MimeTypeMap mimes = MimeTypeMap.getSingleton();
