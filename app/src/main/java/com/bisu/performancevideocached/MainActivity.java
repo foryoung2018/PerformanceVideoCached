@@ -4,6 +4,8 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.MemoryFile;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -13,11 +15,17 @@ import com.bisu.serverlibrary.Constant;
 import com.bisu.serverlibrary.io.NativeHelper;
 import com.bisu.serverlibrary.server.CachedServer;
 
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import butterknife.BindView;
+import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,6 +34,11 @@ public class MainActivity extends AppCompatActivity {
     private String localMp4  = "http://192.168.1.3/1.mp4";
     VideoView videoView;
     Button play;
+
+    @BindView(R.id.bt1)
+    Button bt1;
+    @BindView(R.id.bt2)
+    Button bt2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +80,37 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE,
                     REQUEST_EXTERNAL_STORAGE);
         }
+    }
+
+    @OnClick({R.id.bt1,R.id.bt2})
+    public void onViewClicked(View view) {
+        switch (view.getId()){
+            case R.id.bt1:
+                try {
+                    writeFD();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                break;
+            case R.id.bt2:
+
+                break;
+        }
+    }
+
+    private void writeFD() throws IOException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        byte[] contentBytes = new byte[100];
+        MemoryFile mf = new MemoryFile("memfile", contentBytes.length);
+        mf.writeBytes(contentBytes, 0, 0, contentBytes.length);
+        Method method = MemoryFile.class.getDeclaredMethod("getFileDescriptor");
+        FileDescriptor fd = (FileDescriptor) method.invoke(mf);
+        ParcelFileDescriptor pfd = ParcelFileDescriptor.dup(fd);
     }
 
     long ptr;
