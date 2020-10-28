@@ -2,10 +2,15 @@ package com.bisu.performancevideocached;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.MemoryFile;
 import android.os.ParcelFileDescriptor;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -16,6 +21,8 @@ import com.bisu.serverlibrary.io.NativeHelper;
 import com.bisu.serverlibrary.server.CachedServer;
 
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,7 +36,8 @@ import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
 
-//    private String mockUrl = "https://cv.phncdn.com/videos/201912/16/269072851/1080P_4000K_269072851.mp4";
+    private static final String TAG = MainActivity.class.getSimpleName();
+    //    private String mockUrl = "https://cv.phncdn.com/videos/201912/16/269072851/1080P_4000K_269072851.mp4";
     private String mockUrl = "http://t8.baidu.com/it/u=3571592872,3353494284&fm=79&app=86&f=JPEG?w=1200&h=1290";
     private String localMp4  = "http://192.168.1.3/1.mp4";
     VideoView videoView;
@@ -99,18 +107,51 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             case R.id.bt2:
-
+                startService();
                 break;
         }
     }
 
+    private void startService() {
+
+        Intent intent = new Intent(MainActivity.this, FdService.class);
+        bindService(intent, mConnection, BIND_AUTO_CREATE);
+
+    }
+
+    private IMyAidlInterface mService;
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mService = IMyAidlInterface.Stub.asInterface(service);
+            try {
+                mService.read(pfd);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
+
+    ParcelFileDescriptor pfd;
+
     private void writeFD() throws IOException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         byte[] contentBytes = new byte[100];
+        for(int i = 0 ; i < 100 ; i++){
+            contentBytes[i] = 0xf;
+        }
         MemoryFile mf = new MemoryFile("memfile", contentBytes.length);
         mf.writeBytes(contentBytes, 0, 0, contentBytes.length);
         Method method = MemoryFile.class.getDeclaredMethod("getFileDescriptor");
         FileDescriptor fd = (FileDescriptor) method.invoke(mf);
-        ParcelFileDescriptor pfd = ParcelFileDescriptor.dup(fd);
+        pfd = ParcelFileDescriptor.dup(fd);
+
     }
 
     long ptr;
